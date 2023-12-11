@@ -22,6 +22,7 @@ class Alarm():
             self.write_bytes(command);
         except Exception as e:
             print("Wrong to set the alarm volume",e);
+            # this is a try
 
     def alarmPlayMode(self,mode = 1):
         try:
