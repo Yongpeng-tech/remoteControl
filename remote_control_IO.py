@@ -167,8 +167,8 @@ def convert_16bits_integer(np_binary_array):
     return high_8bits << 8 | low_8bits;
 
 
-class zhongsheng_IO_relay_controller(object):
-    def __init__(self, serial_port="/dev/ttyUSB0", baud_rate=9600, parity='N',
+class zhongsheng_io_relay_controller(object):
+    def __init__(self, serial_port="/dev/ttyUSB0", baud_rate=19200, parity='N',
                  data_bits=8, stop_bits=1, timeout=0.01, unit=0x01):
         self.serial_port = serial_port  # Replace this with your serial port
         self.baud_rate = baud_rate
@@ -179,6 +179,7 @@ class zhongsheng_IO_relay_controller(object):
         self.unit = unit;
         self.modes_names = ["普通模式", "联动模式", "点动模式", "开关循环模式", "", "开固定时长模式"];
         self.serial = serial.Serial("/dev/ttyUSB0", baud_rate)
+        self.baud_rate_dict = {0: 4800, 1: 9600, 2: 14400, 3: 38400, 5: 56000,6:57600,7:115200}
         self.client = ModbusSerialClient(
             method='rtu',
             Framer=Framer.RTU,
@@ -194,7 +195,7 @@ class zhongsheng_IO_relay_controller(object):
         try:
             connection = self.client.connect();
             if connection:
-                print("Connected to Modbus RTU device");
+                print("Connected to Modbus RTU device zhongsheng_IO_relay_controller");
             else:
                 print("Failure to do connection ")
         except Exception as e:
@@ -203,13 +204,13 @@ class zhongsheng_IO_relay_controller(object):
     def read_input_conditions(self, address, count=1):
         '''
         To read input registers
-        :param address: uint16, input_register's starting address to be read
+        :param address: uint16, input_register's starting address to be read(starting address from 0000H~0034H
         :param count: uint8, quantities of registers be read
         :return: uint16 array, values of the read registers
         '''
         result = self.client.read_input_registers(address=address, count=count, slave=self.unit);
         if isinstance(result, ModbusException):
-            raise result
+            print("Failure to read input",result)
         else:
             return result.registers;
 
@@ -221,8 +222,8 @@ class zhongsheng_IO_relay_controller(object):
 
         :return(bool): return the state of written coil
         """
-        self.client.write_coil(address=address, value=value, unit=self.unit);
-        result = self.client.read_coils(address=address, count=1, unit=self.unit);
+        self.client.write_coil(address=address, value=value, slave=self.unit);
+        result = self.client.read_coils(address=address, count=1, slave=self.unit);
         if isinstance(result, ModbusException):
             raise result
         else:
@@ -234,7 +235,7 @@ class zhongsheng_IO_relay_controller(object):
         :param address:  uint16, register's address to be read
         :return: bool, the state of coil
         '''
-        result = self.client.read_coils(address=address, count=1, unit=self.unit);
+        result = self.client.read_coils(address=address, count=1, slave=self.unit);
         if isinstance(result, ModbusException):
             raise result
         else:
@@ -248,7 +249,7 @@ class zhongsheng_IO_relay_controller(object):
         :param close_switch_list: list of outputs' number to switch to close
         :return: bool, True for success to write; False for failure to write
         '''
-        result = self.client.read_holding_registers(address=0x0035, count=3, unit=self.unit);
+        result = self.client.read_holding_registers(address=0x0035, count=3, slave=self.unit);
         if isinstance(result, ModbusException):
             print("Failure to read switches' conditions: ", result);
             return False;
@@ -299,14 +300,15 @@ class zhongsheng_IO_relay_controller(object):
 
     def set_all_switches(self, set):
         if True:
-            result = self.client.write_register(address=0x000C, value=set, unit=self.unit);
+            result = self.client.write_register(address=0x000C, value=set, slave=self.unit);
         else:
-            result = self.client.write_register(address=0x0034, value=set, unit=self.unit);
+            result = self.client.write_register(address=0x0034, value=set, slave=self.unit);
         if isinstance(result, ModbusException):
             return False;
         else:
             print("Success to set all switches");
             return True;
+
     'setting holding registers'
     """
     To set switch modes
@@ -330,7 +332,7 @@ class zhongsheng_IO_relay_controller(object):
             print("Failure to set mode: mode should be integer between 1 and 5")
             return;
 
-        result = self.client.write_register(address=address, value=mode, unit=self.unit);
+        result = self.client.write_register(address=address, value=mode, slave=self.unit);
         if isinstance(result, ModbusException):
             raise result
         else:
@@ -345,7 +347,7 @@ class zhongsheng_IO_relay_controller(object):
         if 1 > mode > 5:
             print("Failure to set mode: mode should be integer between 1 and 5")
             return;
-        result = self.client.write_registers(address=0, count=48, value=mode, unit=self.unit);
+        result = self.client.write_registers(address=0, count=48, value=mode, slave=self.unit);
         if isinstance(result, ModbusException):
             raise result
         else:
@@ -353,9 +355,9 @@ class zhongsheng_IO_relay_controller(object):
 
     def set_automatic_submit_inputs_condition(self, mode):
         if True:
-            result = self.client.write_register(address=9, value=mode, unit=self.unit);
+            result = self.client.write_register(address=9, value=mode, slave=self.unit);
         else:
-            result = self.client.write_register(address=0x0031, value=mode, unit=self.unit);
+            result = self.client.write_register(address=0x0031, value=mode, slave=self.unit);
         if isinstance(result, ModbusException):
             return False;
         else:
@@ -371,51 +373,46 @@ class zhongsheng_IO_relay_controller(object):
         '''
         flag = False;
         if True:
+            if 0 <= baud_rate <= 7 and self.baud_rate != self.baud_rate_dict[baud_rate]:
+                result = self.client.write_register(address=0x000B, value=baud_rate, slave=self.unit);
             if 0 < unit < 0xFF and self.unit != unit:
-                result = self.client.write_register(address=0x000A, value=unit, unit=self.unit);
-                flag = True;
-            if 0 <= baud_rate <= 7 and self.baud_rate != baud_rate:
-                result = self.client.write_register(address=0x000B, value=baud_rate, unit=self.unit);
-                flag = True;
+                result = self.client.write_register(address=0x000A, value=unit, slave=self.unit);
+
         else:
+            if 0 <= baud_rate <= 7 and self.baud_rate != self.baud_rate_dict[baud_rate]:
+                result = self.client.write_register(address=0x0033, value=baud_rate, slave=self.unit);
             if 0 < unit < 0xFF and self.unit != unit:
-                result = self.client.write_register(address=0x0032, value=unit, unit=self.unit);
-                flag = True;
-            if 0 <= baud_rate <= 7 and self.baud_rate != baud_rate:
-                result = self.client.write_register(address=0x0033, value=baud_rate, unit=self.unit);
-                flag = True;
+                result = self.client.write_register(address=0x0032, value=unit, slave=self.unit);
+
 
         if isinstance(result, ModbusException):
             print("Failure to set slave id or baudrate")
             return False;
-        else:
-            print("Success to set slave id and baudrate: restarting!!!");
-            if flag:
-                self.unit = unit;
-                self.baud_rate = baud_rate;
-                self.client.close();
-                self.client = ModbusSerialClient(
-                    method='rtu',
-                    Framer=Framer.RTU,
-                    port=self.serial_port,
-                    baudrate=self.baud_rate,
-                    parity=self.parity,
-                    bytesize=self.data_bits,
-                    stopbits=self.stop_bits,
-                    timeout=self.timeout,
-                    errorcheck="crc"
-                );
-                self.client.connect();
-            try:
-                connection = self.client.connect();
-                if connection:
-                    print("Connected to Modbus RTU device");
-                else:
-                    print("Failure to do connection ")
-            except Exception as e:
-                print(e);
-            print("Done")
-            return True;
+        print("Success to set slave id and baudrate: restarting!!!");
+        self.unit = unit;
+        self.baud_rate = self.baud_rate_dict[baud_rate];
+        self.client.close();
+        self.client = ModbusSerialClient(
+            method='rtu',
+            Framer=Framer.RTU,
+            port=self.serial_port,
+            baudrate=self.baud_rate,
+            parity=self.parity,
+            bytesize=self.data_bits,
+            stopbits=self.stop_bits,
+            timeout=self.timeout,
+            errorcheck="crc"
+        );
+        try:
+            connection = self.client.connect();
+            if connection:
+                print("Connected to Modbus RTU device");
+            else:
+                print("Failure to do connection ")
+        except Exception as e:
+            print(e);
+        print("Done")
+        return True;
 
     def write_bytes(self, hex_bytes):
         """

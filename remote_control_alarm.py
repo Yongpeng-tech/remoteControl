@@ -9,7 +9,7 @@ import serial
 
 
 class Alarm():
-    def __init__(self,serial_port = "/dev/ttyUSB0",baud_rate = 9600 ,unit = 0x01):
+    def __init__(self,serial_port = "/dev/ttyUSB0",baud_rate = 19200 ,unit = 0x01):
         self.unit = unit;
         self.serial = serial.Serial(serial_port, baud_rate)
         self.SOF = " EF AA ";
@@ -30,6 +30,7 @@ class Alarm():
             crc = "";
             command = self.SOF + ttl_data + crc + self.EOF;
             self.write_bytes(command);
+
         except Exception as e:
             print("Wrong to set the alarm play mode",e)
 
@@ -45,15 +46,15 @@ class Alarm():
 
     def setAlarmBaudRate(self,baud_rate_choice):
         try:
-            if baud_rate_choice <= 7 and baud_rate_choice >= 0:
+            if 7 >= baud_rate_choice >= 0:
                 old_id = self.to_2bytes(self.unit);
                 new_baud_rate = self.to_2bytes(baud_rate_choice);
                 command = " EF FF "+ old_id + " A1 " + new_baud_rate + " EF 55"
                 self.write_bytes(command);
             else:
                 print("Failure to set baud rate, the baud rate choice should be integer between 0 and 7");
-        except:
-            print("Wrong to assign new baud rate to alarm device");
+        except Exception as e:
+            print("Wrong to assign new baud rate to alarm device",e);
 
     def playAlarm(self):
         try:
