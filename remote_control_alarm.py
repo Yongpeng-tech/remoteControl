@@ -4,12 +4,17 @@ import binascii
 # Press Shift+F10 to execute it or replace it with your code.
 # Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
 import serial
-
-
-
+from pymodbus.client import ModbusSerialClient
+from pymodbus.exceptions import ModbusException
 
 class Alarm():
     def __init__(self,serial_port = "/dev/ttyUSB0",baud_rate = 19200 ,unit = 0x01):
+        '''
+
+        :param serial_port: string, default port is /dev/ttyUSB0
+        :param baud_rate: default baud rate, default 19200
+        :param unit: default slave id is 0x01
+        '''
         self.unit = unit;
         self.serial = serial.Serial(serial_port, baud_rate)
         self.SOF = " EF AA ";
@@ -25,6 +30,11 @@ class Alarm():
             # this is a try
 
     def alarmPlayMode(self,mode = 1):
+        '''
+
+        :param mode: set alarm play mode ,default value is 1
+        :return:
+        '''
         try:
             ttl_data = "AA 18 01 " + self.to_2bytes(mode) + ' C6';
             crc = "";
@@ -35,6 +45,11 @@ class Alarm():
             print("Wrong to set the alarm play mode",e)
 
     def setAlarmAddress(self,unit):
+        '''
+
+        :param unit: set alarm slave id
+        :return:
+        '''
         try:
             old_id = self.to_2bytes(self.unit);
             new_id = self.to_2bytes(unit);
@@ -45,6 +60,11 @@ class Alarm():
             print("Wrong to assign uint ID to alarm device");
 
     def setAlarmBaudRate(self,baud_rate_choice):
+        '''
+
+        :param baud_rate_choice:integer from 0 to 7, choose baud_rate with table as {0:,1:,2:,3:,4:,5:,6:,7:}
+        :return:
+        '''
         try:
             if 7 >= baud_rate_choice >= 0:
                 old_id = self.to_2bytes(self.unit);
@@ -57,6 +77,10 @@ class Alarm():
             print("Wrong to assign new baud rate to alarm device",e);
 
     def playAlarm(self):
+        '''
+        start to play alarm
+        :return:
+        '''
         try:
             id = self.to_2bytes(self.unit);
             command = self.SOF + id  +"AA 02 00 AC" +  self.EOF;
@@ -66,6 +90,10 @@ class Alarm():
             print("Failure to let alarm play",e);
 
     def stopAlarm(self):
+        '''
+        stop to play alarm
+        :return:
+        '''
         try:
             id = self.to_2bytes(self.unit);
             command = self.SOF + id + "AA 03 00 AD" + self.EOF;
@@ -75,6 +103,10 @@ class Alarm():
             print("Failure to let alarm stop",e);
 
     def check_configuration(self):
+        '''
+        check alarm configuration, the decode information based on manual files
+        :return:
+        '''
         # check the configuration
         self.serial.reset_input_buffer();
         self.serial.write_bytes('EF FF FF A6 33 EF 55');
@@ -113,3 +145,26 @@ class Alarm():
         return bytes_string;
 # See PyCharm help at https://www.jetbrains.com/help/pycharm/
 
+class ModbusAlarm():
+    def __init__(self,serial_client:ModbusSerialClient ,unit = 0x01):
+        self.unit = unit;
+        self.client = serial_client;
+    def alarm_play(self):
+        result = self.client.write_register(address=0x01,value = 0,slave = self.unit);
+        if isinstance(result, ModbusException):
+            print("Failure to write register", result)
+        else:
+            return result.registers;
+    def alarm_stop(self):
+        result = self.client.write_register(address=0x02,value = 0,slave=self.unit);
+        if isinstance(result, ModbusException):
+            print("Failure to write register", result)
+        else:
+            return result.registers;
+
+    def set_alarm_volume(self,volume=15):
+        result = self.client.write_register(address=0x06,value =volume,slave=self.unit);
+        if isinstance(result, ModbusException):
+            print("Failure to write register", result)
+        else:
+            return result.registers;

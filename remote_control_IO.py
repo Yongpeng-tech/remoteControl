@@ -166,31 +166,39 @@ def convert_16bits_integer(np_binary_array):
     print(high_8bits);
     return high_8bits << 8 | low_8bits;
 
-
+# serial_port="/dev/ttyUSB0", baud_rate=19200, parity='N',
+#                  data_bits=8, stop_bits=1, timeout=0.01,
+# ModbusSerialClient(
+#             method='rtu',
+#             Framer=Framer.RTU,
+#             port=self.serial_port,
+#             baudrate=self.baud_rate,
+#             parity=self.parity,
+#             bytesize=self.data_bits,
+#             stopbits=self.stop_bits,
+#             timeout=self.timeout,
+#             errorcheck="crc"
+#         )
 class zhongsheng_io_relay_controller(object):
-    def __init__(self, serial_port="/dev/ttyUSB0", baud_rate=19200, parity='N',
-                 data_bits=8, stop_bits=1, timeout=0.01, unit=0x01):
-        self.serial_port = serial_port  # Replace this with your serial port
-        self.baud_rate = baud_rate
-        self.parity = parity
-        self.data_bits = data_bits
-        self.stop_bits = stop_bits
-        self.timeout = timeout;
+    def __init__(self, serial_client:ModbusSerialClient,unit=0x01,small_port = True):
+        '''
+
+        :param serial_port:'string, the port to be read
+        :param baud_rate: baud_rate to be set and the choice based on manual file
+        :param parity: char,default as 'N' None
+        :param data_bits: default 8 bits represent data
+        :param stop_bits: default 1 bit for stop bit
+        :param timeout:float, default 0.01 and too small cause problem
+        :param unit: uint16,the slave id for the device, the default value is 1
+        :param small_port: bool, IO device has two categories: small port meaning 4 and less than 4 port in input or output;
+        the big port meaning bigger than 4 port in input or output. True for small, False for big one
+
+        '''
+        self.small_port = small_port;
         self.unit = unit;
         self.modes_names = ["普通模式", "联动模式", "点动模式", "开关循环模式", "", "开固定时长模式"];
-        self.serial = serial.Serial("/dev/ttyUSB0", baud_rate)
         self.baud_rate_dict = {0: 4800, 1: 9600, 2: 14400, 3: 38400, 5: 56000,6:57600,7:115200}
-        self.client = ModbusSerialClient(
-            method='rtu',
-            Framer=Framer.RTU,
-            port=self.serial_port,
-            baudrate=self.baud_rate,
-            parity=self.parity,
-            bytesize=self.data_bits,
-            stopbits=self.stop_bits,
-            timeout=self.timeout,
-            errorcheck="crc"
-        )
+        self.client = serial_client;
 
         try:
             connection = self.client.connect();
@@ -254,11 +262,10 @@ class zhongsheng_io_relay_controller(object):
             print("Failure to read switches' conditions: ", result);
             return False;
 
-
         original_switches_conditions = [];
-
+        print(result.registers)
         for i, value in enumerate(result.registers):
-            temp = bin(value[i])[2:];
+            temp = bin(value)[2:];
             fixed_length_binary = list('0' * (16 - len(temp)) + temp);
             fixed_length_binary.reverse();
             original_switches_conditions = original_switches_conditions + fixed_length_binary;
@@ -277,7 +284,7 @@ class zhongsheng_io_relay_controller(object):
         # print(new_switches_conditions[16:32])
         # print(new_switches_conditions[32:48])
 
-        values = np.zeros(3)
+        values = np.zeros(3).astype(int)
         new_switches_conditions = np.array(new_switches_conditions, dtype=int);
         low_2bytes = new_switches_conditions[0:16];
         mid_2bytes = new_switches_conditions[16:32];
@@ -292,6 +299,7 @@ class zhongsheng_io_relay_controller(object):
         values[1] = convert_16bits_integer(mid_2bytes);
         values[2] = convert_16bits_integer(high_2bytes);
         # print(values);
+
         result = self.client.write_registers(address=0x0035,values=list(values),slave=self.unit);
         if isinstance(result, ModbusException):
             print("Failure to control switches' conditions: ", result);
@@ -299,7 +307,7 @@ class zhongsheng_io_relay_controller(object):
         return True;
 
     def set_all_switches(self, set):
-        if True:
+        if self.small_port:
             result = self.client.write_register(address=0x000C, value=set, slave=self.unit);
         else:
             result = self.client.write_register(address=0x0034, value=set, slave=self.unit);
@@ -354,7 +362,7 @@ class zhongsheng_io_relay_controller(object):
             print("Success to set all switch mode as " + self.modes_names[mode]);
 
     def set_automatic_submit_inputs_condition(self, mode):
-        if True:
+        if self.small_port:
             result = self.client.write_register(address=9, value=mode, slave=self.unit);
         else:
             result = self.client.write_register(address=0x0031, value=mode, slave=self.unit);
@@ -371,15 +379,14 @@ class zhongsheng_io_relay_controller(object):
         :param baud_rate: integer from 0 to 5, baurd rate choice
         :return: bool, True for success vice versa
         '''
-        flag = False;
-        if True:
-            if 0 <= baud_rate <= 7 and self.baud_rate != self.baud_rate_dict[baud_rate]:
+        if self.small_port:
+            if 0 <= baud_rate <= 7 :
                 result = self.client.write_register(address=0x000B, value=baud_rate, slave=self.unit);
             if 0 < unit < 0xFF and self.unit != unit:
                 result = self.client.write_register(address=0x000A, value=unit, slave=self.unit);
 
         else:
-            if 0 <= baud_rate <= 7 and self.baud_rate != self.baud_rate_dict[baud_rate]:
+            if 0 <= baud_rate <= 7 :
                 result = self.client.write_register(address=0x0033, value=baud_rate, slave=self.unit);
             if 0 < unit < 0xFF and self.unit != unit:
                 result = self.client.write_register(address=0x0032, value=unit, slave=self.unit);
@@ -388,29 +395,8 @@ class zhongsheng_io_relay_controller(object):
         if isinstance(result, ModbusException):
             print("Failure to set slave id or baudrate")
             return False;
-        print("Success to set slave id and baudrate: restarting!!!");
-        self.unit = unit;
-        self.baud_rate = self.baud_rate_dict[baud_rate];
+        print("Success to set slave id and baudrate: restarting...........");
         self.client.close();
-        self.client = ModbusSerialClient(
-            method='rtu',
-            Framer=Framer.RTU,
-            port=self.serial_port,
-            baudrate=self.baud_rate,
-            parity=self.parity,
-            bytesize=self.data_bits,
-            stopbits=self.stop_bits,
-            timeout=self.timeout,
-            errorcheck="crc"
-        );
-        try:
-            connection = self.client.connect();
-            if connection:
-                print("Connected to Modbus RTU device");
-            else:
-                print("Failure to do connection ")
-        except Exception as e:
-            print(e);
         print("Done")
         return True;
 
