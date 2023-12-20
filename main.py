@@ -13,6 +13,7 @@ import time
 from state_machine import *
 from pymodbus import Framer
 
+
 def main_controller_handler(alarm_controller: Alarm, io_controller: zhongsheng_io_relay_controller,
                             current_controller: fengkong_current_detector):
     flag = False;

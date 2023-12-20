@@ -1,4 +1,19 @@
-import threading
+import logging
+
+from exception_logger import *
+from datetime import datetime
+configure = load_configuration();
+my_logger = LoggingSystem(logger_name=configure["logger_name"],
+                          filename=configure["logging_path"],level=logging.ERROR);
+latest_logging = my_logger.read_json_information();
+
+check_exception_logging_flag = True;
+if(latest_logging is not None and latest_logging["mark_condition"])
+    check_exception_logging_flag = True;
+elif(latest_logging is not None and not latest_logging["mark_condition"]):
+    check_exception_logging_flag = False;
+else:
+    check_exception_logging_flag = True;
 class State:
     def __int__(self, name):
         self.name = name;
@@ -15,6 +30,8 @@ class StateMachine:
         while True:
             with self.lock:
                 self.current_state = self.current_state.on_event();
+
+
 
 def check_physical_swtiches():
     '''
@@ -40,6 +57,13 @@ def check_emergency_stop_switch():
     '''
     return True;
 
+def check_exception_code():
+    '''
+    TO BE FINISHED
+    check what exception problem and return as predefined exception code
+    :return:
+    '''
+    return 1;
 class system_normal_waiting_state(State):
     def on_event(self):
         print(f"The class name is:{self.__class__.__name__}")
@@ -52,7 +76,7 @@ class system_normal_waiting_state(State):
             return system_shutdown_state();
         elif check_emergency_stop_switch():
             return system_emergency_stop_state();
-        elif check_exception_logging_flag:
+        elif not check_exception_logging_flag:
             return system_shutdown_state();
         elif client_connection_flag:
             return system_ready_state();
@@ -69,7 +93,7 @@ class system_ready_state(State):
         global io_output;
         if shutdown_signal:
             return system_shutdown_state();
-        elif check_exception_logging_flag:
+        elif not check_exception_logging_flag:
             return system_ready_state();
         elif check_emergency_stop_switch():
             return system_emergency_stop_state();
@@ -86,7 +110,7 @@ class system_boosting_state(State):
         global io_output;
         if shutdown_signal:
             return system_shutdown_state();
-        elif check_exception_logging_flag:
+        elif not check_exception_logging_flag:
             return system_ready_state();
         elif check_emergency_stop_switch():
             return system_emergency_stop_state();
@@ -105,7 +129,7 @@ class system_operation_state(State):
         global io_output;
         if shutdown_signal:
             return system_shutdown_state();
-        elif check_exception_logging_flag:
+        elif not check_exception_logging_flag:
             return system_ready_state();
         elif check_emergency_stop_switch():
             return system_emergency_stop_state();
@@ -124,7 +148,12 @@ class system_exception_state(State):
             '''
             record the exception here and keep checking if the exception is cleared
             '''
+            result = check_exception_code();
+            current_date_time = datetime.now();
+            date = current_date_time.strftime("%Y-%m-%d");
+            time = current_date_time.strftime("%H:%M:%S");
 
+            my_logger.log_json_information(date=date,time=time,error_code=result,debug_condition=False,mark_condition=False);
             if shutdown_signal:
                 return system_shutdown_state();
             else:
