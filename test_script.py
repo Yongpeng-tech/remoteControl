@@ -45,3 +45,21 @@ alarm: baud_rate = 9600, id = 1
 zhongsheng_IO_Relay: baud_rate = 19200, id = 2
 fengkong_current_detector: baud_rate = 19200, id = 3
 """
+
+'''
+test loggingSystem class
+'''
+
+# my_logger = LoggingSystem(logger_name="error_logger", filename="logging.log");
+# cur = datetime.now();
+# date = cur.strftime("%Y:%m:%d");
+# time = cur.strftime("%H:%M:%S");
+# my_logger.log_json_information(date=date, time=time, error_code=1, debug_condition=False, mark_condition=False);
+# result = my_logger.read_json_information();
+# print(result)
+# my_logger.debug_finished();
+# result = my_logger.read_json_information();
+# print(result)
+# my_logger.mark_finish();
+# result = my_logger.read_json_information();
+# print(result)

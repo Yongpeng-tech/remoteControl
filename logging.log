@@ -1,0 +1,9 @@
+ERROR:error_logger:{"date": "2023:12:20", "time": "18:31:40", "error_code": 1, "debug_condition": false, "mark_condition": false}
+ERROR:error_logger:{"date": "2023:12:20", "time": "18:32:43", "error_code": 1, "debug_condition": false, "mark_condition": false}
+ERROR:error_logger:{"date": "2023:12:20", "time": "18:33:35", "error_code": 1, "debug_condition": false, "mark_condition": false}
+ERROR:error_logger:{"date": "2023:12:20", "time": "18:34:26", "error_code": 1, "debug_condition": false, "mark_condition": false}
+ERROR:error_logger:{"date": "2023:12:20", "time": "18:35:33", "error_code": 1, "debug_condition": true, "mark_condition": false}
+ERROR:error_logger:{"date": "2023:12:20", "time": "18:35:52", "error_code": 1, "debug_condition": true, "mark_condition": false}
+ERROR:error_logger:{"date": "2023:12:20", "time": "18:37:43", "error_code": 1, "debug_condition": true, "mark_condition": false}
+ERROR:error_logger:{"date": "2023:12:20", "time": "18:38:49", "error_code": 1, "debug_condition": true, "mark_condition": true}
+ERROR:error_logger:{"date": "2023:12:20", "time": "18:51:52", "error_code": 1, "debug_condition": true, "mark_condition": true}

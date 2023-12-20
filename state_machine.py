@@ -2,23 +2,41 @@ import logging
 
 from exception_logger import *
 from datetime import datetime
+
+'''
+shared variables between state machine and main_controller
+'''
+
 configure = load_configuration();
 my_logger = LoggingSystem(logger_name=configure["logger_name"],
                           filename=configure["logging_path"],level=logging.ERROR);
 latest_logging = my_logger.read_json_information();
 
 check_exception_logging_flag = True;
-if(latest_logging is not None and latest_logging["mark_condition"])
+if(latest_logging is not None and latest_logging["mark_condition"]):
     check_exception_logging_flag = True;
 elif(latest_logging is not None and not latest_logging["mark_condition"]):
     check_exception_logging_flag = False;
 else:
     check_exception_logging_flag = True;
+
+io_input = [];
+io_output = [];
+shutdown_signal = False;
+start_signal = False;
+client_connection_flag = False;
+io_connection_flag = False;
+current_connection_flag = False;
+alarm_connection_flag = False;
+
 class State:
+    '''
+    class state
+    '''
     def __int__(self, name):
         self.name = name;
 
-    def on_event(self,event):
+    def on_event(self):
         pass;
 
 class StateMachine:
@@ -40,6 +58,7 @@ def check_physical_swtiches():
     '''
     global io_input;
     global io_output;
+
     return True;
 
 def check_exception():
@@ -47,6 +66,7 @@ def check_exception():
     TO BE FINISHED
     :return:
     '''
+
     return True;
 
 def check_emergency_stop_switch():
@@ -55,6 +75,7 @@ def check_emergency_stop_switch():
     check the main emergency stop switch state
     :return:
     '''
+
     return True;
 
 def check_exception_code():
@@ -63,8 +84,12 @@ def check_exception_code():
     check what exception problem and return as predefined exception code
     :return:
     '''
+
     return 1;
 class system_normal_waiting_state(State):
+    '''
+    system normal waiting state: system wait to start
+    '''
     def on_event(self):
         print(f"The class name is:{self.__class__.__name__}")
         global shutdown_signal;
@@ -84,6 +109,9 @@ class system_normal_waiting_state(State):
             return self;
 
 class system_ready_state(State):
+    '''
+    system ready
+    '''
     def on_event(self):
         print(f"The class name is:{self.__class__.__name__}")
         global shutdown_signal;
@@ -101,6 +129,9 @@ class system_ready_state(State):
             return system_boosting_state();
 
 class system_boosting_state(State):
+    '''
+    system is boosting, run all subsystems
+    '''
     def on_event(self):
         print(f"The class name is:{self.__class__.__name__}")
         global shutdown_signal;
@@ -120,6 +151,9 @@ class system_boosting_state(State):
             return system_operation_state();
 
 class system_operation_state(State):
+    '''
+    system is operating
+    '''
     def on_event(self):
         print(f"The class name is:{self.__class__.__name__}")
         global shutdown_signal;
@@ -136,6 +170,9 @@ class system_operation_state(State):
         return system_operation_state();
 
 class system_exception_state(State):
+    '''
+    system has detected exceptions
+    '''
     def on_event(self):
         print(f"The class name is:{self.__class__.__name__}")
         global shutdown_signal;
@@ -166,6 +203,9 @@ class system_exception_state(State):
             return system_normal_waiting_state();
 
 class system_shutdown_state(State):
+    '''
+    system is shuting down
+    '''
     def on_event(self):
         print(f"The class name is:{self.__class__.__name__}")
         global shutdown_signal;
@@ -179,6 +219,9 @@ class system_shutdown_state(State):
         return system_shutdown_state();
 
 class system_emergency_stop_state(State):
+    '''
+    system detect emergency_switch is pushed, all systems are trying to stop
+    '''
     def on_event(self):
         print(f"The class name is:{self.__class__.__name__}")
         global shutdown_signal;
@@ -209,6 +252,9 @@ class system_reset_state(State):
 
 
 class system_waiting_state(State):
+    '''
+    system do nothing and waits commands
+    '''
     def on_event(self):
         print(f"The class name is:{self.__class__.__name__}")
         global shutdown_signal;

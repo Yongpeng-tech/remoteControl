@@ -6,6 +6,11 @@ from pymodbus.exceptions import ModbusException
 import numpy as np
 
 def convert_16bits_integer(np_binary_array):
+    '''
+    covert 16 binary np.int into a uint16 data
+    :param np_binary_array: 16 length long np.int
+    :return:
+    '''
     low_8bits = np.packbits(np_binary_array[:8]);
     high_8bits = np.packbits(np_binary_array[8:]);
     print(low_8bits)
@@ -16,7 +21,7 @@ def convert_16bits_integer(np_binary_array):
 class fengkong_current_detector(object):
     def __init__(self, seria_client:ModbusSerialClient , unit=0x01):
         '''
-
+        fengkong current detector
         :param serial_port:'string, the port to be read
         :param baud_rate: baud_rate to be set and the choice based on manual file
         :param parity: char,default as 'N' None
@@ -40,7 +45,7 @@ class fengkong_current_detector(object):
     def set_controller_address(self, unit=-1, baud_rate=-1):
         '''
         set slave id and baud_rate for IO_relay
-        :param unit: uint8, slave id
+        :param unit: uint8,uint8, slave id
         :param baud_rate: integer from 3 to 7, baurd rate choice
         :return: bool, True for success vice versa
         '''

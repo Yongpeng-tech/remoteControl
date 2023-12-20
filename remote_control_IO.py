@@ -211,7 +211,7 @@ class zhongsheng_io_relay_controller(object):
 
     def read_input_conditions(self, address, count=1):
         '''
-        To read input registers
+        To read input relay conditions, 1 for high voltage detected ,0 for low voltage detected
         :param address: uint16, input_register's starting address to be read(starting address from 0000H~0034H
         :param count: uint8, quantities of registers be read
         :return: uint16 array, values of the read registers
@@ -224,6 +224,7 @@ class zhongsheng_io_relay_controller(object):
 
     def switch_single_ouput(self, address, value):
         """
+        switch single relay output
         :param address: uint16, register's address to write start from 0000H to 002FH
         :param value: bool, True to set close for normal open switch and
                         False to set open for normal open switch vice or versa
@@ -239,7 +240,7 @@ class zhongsheng_io_relay_controller(object):
 
     def read_single_coil(self, address):
         '''
-
+        read the single output relay coil
         :param address:  uint16, register's address to be read
         :return: bool, the state of coil
         '''
@@ -307,6 +308,11 @@ class zhongsheng_io_relay_controller(object):
         return True;
 
     def set_all_switches(self, set):
+        '''
+
+        :param set: 0 or 1,set all swiches' relay open or close simutaneously
+        :return: bool, success for True, failure for False
+        '''
         if self.small_port:
             result = self.client.write_register(address=0x000C, value=set, slave=self.unit);
         else:
@@ -362,6 +368,11 @@ class zhongsheng_io_relay_controller(object):
             print("Success to set all switch mode as " + self.modes_names[mode]);
 
     def set_automatic_submit_inputs_condition(self, mode):
+        '''
+        Set input condition automatically send to port, not be tested
+        :param mode:
+        :return:
+        '''
         if self.small_port:
             result = self.client.write_register(address=9, value=mode, slave=self.unit);
         else:
@@ -406,7 +417,6 @@ class zhongsheng_io_relay_controller(object):
         self.write_bytes("02 06 00 02 00 01 E9 F9")
         Args:
             hex_bytes:
-
         Returns:
 
         """

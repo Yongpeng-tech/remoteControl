@@ -20,21 +20,20 @@ import json
 # '''
 # json format to log the informaiton
 # '''
-# def write_read_json_logging_information():
-#     json_data_1 = {"key1": "value1", "key2": 42};
-#     json_data_2 = {"key1":["apple","banana"]};
-#     file_path = 'json_log.log'
-#     logging.basicConfig(filename=file_path, level=logging.INFO);
-#     logger = logging.getLogger("test_logger");
-#     json_data = json.dumps(json_data_1)
-#     print(json_data)
-#     logger.error(f"{json_data}");
-#     with open('json_log.log','r') as file:
-#         log_data = file.readlines();
-#     log_data = log_data[-1];
-#
-#     json_string = log_data.split("ERROR:test_logger:")[-1].strip();
-#     decoded_data = json.loads(json_string);
+def write_read_json_logging_information():
+    # json_data_1 = {"key1": "value1", "key2": 42};
+    # json_data_2 = {"key1":["apple","banana"]};
+    # file_path = 'json_log.log'
+    # logging.basicConfig(filename=file_path, level=logging.INFO);
+    # logger = logging.getLogger("test_logger");
+    # json_data = json.dumps(json_data_1)
+    # print(json_data)
+    # logger.error(f"{json_data}");
+    with open('json_log.log','r') as file:
+        log_data = file.readlines();
+    log_data = log_data[-1];
+    json_string = log_data.split("ERROR:test_logger:")[-1].strip();
+    decoded_data = json.loads(json_string);
 #
 #     print("Decoded Data :", decoded_data);
 #     print(decoded_data["key1"]);
@@ -80,12 +79,17 @@ def load_configuration():
     :return:
     '''
     merged_config = {};
+    loaded_config ="";
     filename = "package.json";
-    with open(filename,'r') as file:
-        log_data = file.readlines();
-    for line in log_data:
-        merged_config.update(json.loads(line));
-    return merged_config;
+    with open(filename, 'r') as file:
+        lines = file.readlines();
+        if lines:
+            for line in lines:
+                loaded_config +=  line;
+            loaded_config = loaded_config.rstrip('\n');
+
+            result = json.loads(loaded_config);
+    return result;
 
 class LoggingSystem():
     '''
@@ -93,6 +97,7 @@ class LoggingSystem():
     '''
     def __init__(self,logger_name,filename,level = logging.ERROR):
         logging.basicConfig(filename=filename, level=level);
+        self.logger_name = logger_name;
         self.logger = logging.getLogger(logger_name);
         self.filename = filename;
 
@@ -112,25 +117,36 @@ class LoggingSystem():
     def read_json_information(self):
         with open(self.filename, 'r') as file:
             log_data = file.readlines();
-        log_data = log_data[-1];
-
-        json_string = log_data.split(f"ERROR:{self.filename}:")[-1].strip();
-        decoded_data = json.loads(json_string);
+            if log_data:
+                log_data = log_data[-1];
+                json_string = log_data.split(f"ERROR:{self.logger_name}:")[-1].strip();
+                decoded_data = json.loads(json_string);
 
         return decoded_data;
 
     def debug_finished(self):
-        with open(self.filename) as file:
+        with open(self.filename,'r+') as file:
             lines = file.readlines();
             if lines:
                 last_line_start = file.tell()-len(lines[-1]);
+                result = self.read_json_information();
                 file.seek(last_line_start);
                 file.truncate();
-                result = self.read_json_information();
                 result["debug_condition"] = True;
                 self.log_json_information(date = result["date"],time = result["time"],
                                           error_code = result["error_code"],debug_condition = result["debug_condition"]
                                           ,mark_condition = result["mark_condition"]);
 
 
-
+    def mark_finish(self):
+        with open(self.filename,'r+') as file:
+            lines = file.readlines();
+            if lines:
+                last_line_start = file.tell()-len(lines[-1]);
+                result = self.read_json_information();
+                file.seek(last_line_start);
+                file.truncate();
+                result["mark_condition"] = True;
+                self.log_json_information(date = result["date"],time = result["time"],
+                                          error_code = result["error_code"],debug_condition = result["debug_condition"]
+                                          ,mark_condition = result["mark_condition"]);
