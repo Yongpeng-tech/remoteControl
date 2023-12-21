@@ -4,7 +4,7 @@ import serial
 from pymodbus.client import ModbusSerialClient
 from pymodbus.exceptions import ModbusException
 import numpy as np
-
+from RS485 import *
 def convert_16bits_integer(np_binary_array):
     '''
     covert 16 binary np.int into a uint16 data
@@ -18,8 +18,8 @@ def convert_16bits_integer(np_binary_array):
     return high_8bits << 8 | low_8bits;
 
 
-class fengkong_current_detector(object):
-    def __init__(self, seria_client:ModbusSerialClient , unit=0x01):
+class fengkong_current_detector(RS485):
+    def __init__(self, seria_client: ModbusSerialClient, unit=0x01):
         '''
         fengkong current detector
         :param serial_port:'string, the port to be read
@@ -30,17 +30,12 @@ class fengkong_current_detector(object):
         :param timeout:float, default 0.01 and too small cause problem
         :param unit: uint16,the slave id for the device, the default value is 1
         '''
+        super().__init__()
         self.baud_rate_dict = {3:1200,4:2400,5:4800,6:9600,7:19200}
+        self.unit = unit;
         self.client = seria_client;
 
-        try:
-            connection = self.client.connect();
-            if connection:
-                print("Connected to Modbus RTU device " + "fengkong_current_detector");
-            else:
-                print("Failure to do connection ")
-        except Exception as e:
-            print(e);
+        print("Connected to Modbus RTU device " + "fengkong_current_detector");
 
     def set_controller_address(self, unit=-1, baud_rate=-1):
         '''
@@ -79,12 +74,15 @@ class fengkong_current_detector(object):
         if isinstance(result, ModbusException):
             print("Fail to read current",result)
             return None;
-        return result.registers[0]*(20-0)/10000-0;
+        else:
+            return result.registers[0]*(20-0)/10000-0;
+
 
     def close(self):
         self.client.close();
 
     def connect(self):
         self.client.connect();
+
 
 

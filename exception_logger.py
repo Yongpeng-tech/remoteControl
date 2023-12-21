@@ -2,9 +2,9 @@ import logging
 import re
 import json
 
-# '''
-# reg way to extract information
-# '''
+'''
+reg way to extract information
+'''
 # def decode_logging_information():
 #     log_data = ["2023-01-08 19:45:00 - ERROR - This is an error message"];
 #     log_pattern = re.compile(r'\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} - \w+ - (.*)');
@@ -16,24 +16,25 @@ import json
 #             print(f"Extracted Message :{message}")
 #         else:
 #             print("No match")
-#
-# '''
-# json format to log the informaiton
-# '''
-def write_read_json_logging_information():
-    # json_data_1 = {"key1": "value1", "key2": 42};
-    # json_data_2 = {"key1":["apple","banana"]};
-    # file_path = 'json_log.log'
-    # logging.basicConfig(filename=file_path, level=logging.INFO);
-    # logger = logging.getLogger("test_logger");
-    # json_data = json.dumps(json_data_1)
-    # print(json_data)
-    # logger.error(f"{json_data}");
-    with open('json_log.log','r') as file:
-        log_data = file.readlines();
-    log_data = log_data[-1];
-    json_string = log_data.split("ERROR:test_logger:")[-1].strip();
-    decoded_data = json.loads(json_string);
+
+
+'''
+json format to log the informaiton
+'''
+# def write_read_json_logging_information():
+#     # json_data_1 = {"key1": "value1", "key2": 42};
+#     # json_data_2 = {"key1":["apple","banana"]};
+#     # file_path = 'json_log.log'
+#     # logging.basicConfig(filename=file_path, level=logging.INFO);
+#     # logger = logging.getLogger("test_logger");
+#     # json_data = json.dumps(json_data_1)
+#     # print(json_data)
+#     # logger.error(f"{json_data}");
+#     with open('json_log.log','r') as file:
+#         log_data = file.readlines();
+#     log_data = log_data[-1];
+#     json_string = log_data.split("ERROR:test_logger:")[-1].strip();
+#     decoded_data = json.loads(json_string);
 #
 #     print("Decoded Data :", decoded_data);
 #     print(decoded_data["key1"]);
@@ -150,3 +151,11 @@ class LoggingSystem():
                 self.log_json_information(date = result["date"],time = result["time"],
                                           error_code = result["error_code"],debug_condition = result["debug_condition"]
                                           ,mark_condition = result["mark_condition"]);
+
+    def delete_all_newlines(self):
+        with open(self.filename) as file:
+            content = file.read();
+        content_without_newlines = content.replace('\n','')
+        with open(self.filename,'w+') as file:
+            file.write(content_without_newlines)
+

@@ -151,13 +151,11 @@
 #         self.client.connect();
 
 
-import serial
 from pymodbus.client import ModbusSerialClient
 from pymodbus.exceptions import ModbusException
-import time
 from pymodbus import Framer
 import numpy as np
-
+from RS485 import *
 
 def convert_16bits_integer(np_binary_array):
     low_8bits = np.packbits(np_binary_array[:8]);
@@ -179,8 +177,8 @@ def convert_16bits_integer(np_binary_array):
 #             timeout=self.timeout,
 #             errorcheck="crc"
 #         )
-class zhongsheng_io_relay_controller(object):
-    def __init__(self, serial_client:ModbusSerialClient,unit=0x01,small_port = True):
+class zhongsheng_io_relay_controller(RS485):
+    def __init__(self, serial_client: ModbusSerialClient, unit=0x01, small_port=True):
         '''
 
         :param serial_port:'string, the port to be read
@@ -194,20 +192,18 @@ class zhongsheng_io_relay_controller(object):
         the big port meaning bigger than 4 port in input or output. True for small, False for big one
 
         '''
+        super().__init__(serial_client,unit)
         self.small_port = small_port;
         self.unit = unit;
         self.modes_names = ["普通模式", "联动模式", "点动模式", "开关循环模式", "", "开固定时长模式"];
         self.baud_rate_dict = {0: 4800, 1: 9600, 2: 14400, 3: 38400, 5: 56000,6:57600,7:115200}
         self.client = serial_client;
 
-        try:
-            connection = self.client.connect();
-            if connection:
-                print("Connected to Modbus RTU device zhongsheng_IO_relay_controller");
-            else:
-                print("Failure to do connection ")
-        except Exception as e:
-            print(e);
+        print("Connected to Modbus RTU device zhongsheng_IO_relay_controller");
+
+
+
+
 
     def read_input_conditions(self, address, count=1):
         '''
@@ -218,7 +214,8 @@ class zhongsheng_io_relay_controller(object):
         '''
         result = self.client.read_input_registers(address=address, count=count, slave=self.unit);
         if isinstance(result, ModbusException):
-            print("Failure to read input",result)
+            print("Failure to read IO input relay: ",result)
+            return None;
         else:
             return result.registers;
 
@@ -238,17 +235,32 @@ class zhongsheng_io_relay_controller(object):
         else:
             return result.bits[0];
 
-    def read_single_coil(self, address):
+    def read_output_conditions(self,address = 0,count = 1):
+        '''
+
+        :param address:
+        :return:
+        '''
+        result = self.client.read_discrete_inputs(address = address,count=count,slave = self.unit);
+        if isinstance(result, ModbusException):
+            print("Failure to read output conditions", result);
+            return None;
+
+        else:
+            return result.bits[0];
+
+    def read_outputs(self, address = 0,count = 1):
         '''
         read the single output relay coil
         :param address:  uint16, register's address to be read
         :return: bool, the state of coil
         '''
-        result = self.client.read_coils(address=address, count=1, slave=self.unit);
+        result = self.client.read_coils(address=address, count= count, slave=self.unit);
         if isinstance(result, ModbusException):
-            raise result
+            return None;
+            print("Failure to read IO outputs ", result)
         else:
-            return result.bits[0];
+            return result.bits;
 
     def control_switches(self, open_switch_list, close_switch_list):
         '''
@@ -270,36 +282,23 @@ class zhongsheng_io_relay_controller(object):
             fixed_length_binary = list('0' * (16 - len(temp)) + temp);
             fixed_length_binary.reverse();
             original_switches_conditions = original_switches_conditions + fixed_length_binary;
-        # print(original_switches_conditions)
         new_switches_conditions = original_switches_conditions;
-        # print("change before:")
-        # print(new_switches_conditions[0:16])
-        # print(new_switches_conditions[16:32])
-        # print(new_switches_conditions[32:48])
+
         for value in open_switch_list:
             new_switches_conditions[value - 1] = '1';
         for value in close_switch_list:
             new_switches_conditions[value - 1] = '0';
-        # print("change after:")
-        # print(new_switches_conditions[0:16])
-        # print(new_switches_conditions[16:32])
-        # print(new_switches_conditions[32:48])
+
 
         values = np.zeros(3).astype(int)
         new_switches_conditions = np.array(new_switches_conditions, dtype=int);
         low_2bytes = new_switches_conditions[0:16];
         mid_2bytes = new_switches_conditions[16:32];
         high_2bytes = new_switches_conditions[32:48];
-        # low_2bytes = low_2bytes[::-1]
-        # mid_2bytes = mid_2bytes[::-1]
-        # high_2bytes = high_2bytes[::-1]
-        # print(low_2bytes)
-        # print(mid_2bytes)
-        # print(high_2bytes)
+
         values[0] = convert_16bits_integer(low_2bytes);
         values[1] = convert_16bits_integer(mid_2bytes);
         values[2] = convert_16bits_integer(high_2bytes);
-        # print(values);
 
         result = self.client.write_registers(address=0x0035,values=list(values),slave=self.unit);
         if isinstance(result, ModbusException):
@@ -311,13 +310,14 @@ class zhongsheng_io_relay_controller(object):
         '''
 
         :param set: 0 or 1,set all swiches' relay open or close simutaneously
-        :return: bool, success for True, failure for False
+        :return: bool, True for success False for failure
         '''
         if self.small_port:
             result = self.client.write_register(address=0x000C, value=set, slave=self.unit);
         else:
             result = self.client.write_register(address=0x0034, value=set, slave=self.unit);
         if isinstance(result, ModbusException):
+            print("Failure to set_all_switches ",result)
             return False;
         else:
             print("Success to set all switches");
@@ -340,7 +340,7 @@ class zhongsheng_io_relay_controller(object):
         To set switch mode and the mode details are above description and the manual file
         :param address: uint16, starting address of holding register (0096H~00C6H)
         :param mode: integer from (1 to 5), five mode to be chosen
-        :return:
+        :return:bool, True for success False for failure
         '''
         if 1 > mode > 5:
             print("Failure to set mode: mode should be integer between 1 and 5")
@@ -348,24 +348,28 @@ class zhongsheng_io_relay_controller(object):
 
         result = self.client.write_register(address=address, value=mode, slave=self.unit);
         if isinstance(result, ModbusException):
-            raise result
+            print("Failure to set switch mode", result);
+            return False;
         else:
             print("set tunnel " + str(address) + " as mode " + self.modes_names[mode])
+            return True;
 
     def set_all_switch_mode(self, mode):
         '''
         To set all switches' mode
         :param mode: integer from (1 to 5), five mode to be choose
-        :return:
+        :return:bool, True for success False for failure
         '''
         if 1 > mode > 5:
             print("Failure to set mode: mode should be integer between 1 and 5")
             return;
         result = self.client.write_registers(address=0, count=48, value=mode, slave=self.unit);
         if isinstance(result, ModbusException):
-            raise result
+            print("Failure to set all switch mode ", result)
+            return False;
         else:
             print("Success to set all switch mode as " + self.modes_names[mode]);
+            return True;
 
     def set_automatic_submit_inputs_condition(self, mode):
         '''
@@ -390,6 +394,7 @@ class zhongsheng_io_relay_controller(object):
         :param baud_rate: integer from 0 to 5, baurd rate choice
         :return: bool, True for success vice versa
         '''
+        result = ModbusException(Exception);
         if self.small_port:
             if 0 <= baud_rate <= 7 :
                 result = self.client.write_register(address=0x000B, value=baud_rate, slave=self.unit);
@@ -402,7 +407,6 @@ class zhongsheng_io_relay_controller(object):
             if 0 < unit < 0xFF and self.unit != unit:
                 result = self.client.write_register(address=0x0032, value=unit, slave=self.unit);
 
-
         if isinstance(result, ModbusException):
             print("Failure to set slave id or baudrate")
             return False;
@@ -411,14 +415,3 @@ class zhongsheng_io_relay_controller(object):
         print("Done")
         return True;
 
-    def write_bytes(self, hex_bytes):
-        """
-        Write a bytes to the modbus server.
-        self.write_bytes("02 06 00 02 00 01 E9 F9")
-        Args:
-            hex_bytes:
-        Returns:
-
-        """
-        byte = bytes.fromhex(hex_bytes)
-        self.serial.write(byte)

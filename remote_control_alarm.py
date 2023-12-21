@@ -6,6 +6,7 @@ import binascii
 import serial
 from pymodbus.client import ModbusSerialClient
 from pymodbus.exceptions import ModbusException
+from RS485 import *
 
 class Alarm():
     def __init__(self,serial_port = "/dev/ttyUSB0",baud_rate = 19200 ,unit = 0x01):
@@ -145,20 +146,26 @@ class Alarm():
         return bytes_string;
 # See PyCharm help at https://www.jetbrains.com/help/pycharm/
 
-class ModbusAlarm():
-    def __init__(self,serial_client:ModbusSerialClient ,unit = 0x01):
+class ModbusAlarm(RS485):
+    def __init__(self, serial_client: ModbusSerialClient, unit=0x01):
+        super().__init__(serial_client,unit)
         self.unit = unit;
         self.client = serial_client;
-    def alarm_play(self):
+
+        print("Connected to Modbus RTU device alarm_controller");
+
+    def play_alarm(self):
         result = self.client.write_register(address=0x01,value = 0,slave = self.unit);
         if isinstance(result, ModbusException):
             print("Failure to write register", result)
+            return None;
         else:
             return result.registers;
-    def alarm_stop(self):
+    def stop_alarm(self):
         result = self.client.write_register(address=0x02,value = 0,slave=self.unit);
         if isinstance(result, ModbusException):
             print("Failure to write register", result)
+            return None;
         else:
             return result.registers;
 
@@ -166,5 +173,6 @@ class ModbusAlarm():
         result = self.client.write_register(address=0x06,value =volume,slave=self.unit);
         if isinstance(result, ModbusException):
             print("Failure to write register", result)
+            return None;
         else:
             return result.registers;

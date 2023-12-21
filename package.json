@@ -13,7 +13,10 @@
   "private": true,
 
   "logger_name": "error_logger",
-  "logging_path":"logging.log"
+  "logging_path":"logging.log",
 
-
+  "host":"192.168.1.100",
+  "port": 8888,
+  "connection_time_out": 60,
+  "waiting_time_out": 0.1,
 }

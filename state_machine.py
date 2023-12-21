@@ -7,27 +7,41 @@ from datetime import datetime
 shared variables between state machine and main_controller
 '''
 
-configure = load_configuration();
-my_logger = LoggingSystem(logger_name=configure["logger_name"],
-                          filename=configure["logging_path"],level=logging.ERROR);
+configurations = load_configuration();
+my_logger = LoggingSystem(logger_name=configurations["logger_name"],
+                          filename=configurations["logging_path"],level=logging.ERROR);
 latest_logging = my_logger.read_json_information();
 
 check_exception_logging_flag = True;
-if(latest_logging is not None and latest_logging["mark_condition"]):
+if latest_logging is not None and latest_logging["mark_condition"]:
     check_exception_logging_flag = True;
-elif(latest_logging is not None and not latest_logging["mark_condition"]):
+elif latest_logging is not None and not latest_logging["mark_condition"]:
     check_exception_logging_flag = False;
 else:
     check_exception_logging_flag = True;
 
 io_input = [];
 io_output = [];
+current_result = 0;
+
 shutdown_signal = False;
 start_signal = False;
-client_connection_flag = False;
-io_connection_flag = False;
-current_connection_flag = False;
-alarm_connection_flag = False;
+
+state_variable = {
+    "socket_connection_flag" : False,
+    "port_connection_flag" : False,
+    "io_connection_flag" : False,
+    "current_connection_flag" : False,
+    "alarm_connection_flag" : False,
+    "devices_connection_flag" : False,
+    "command_codes" : "read",
+};
+
+
+tcp_data = {};
+
+
+
 
 class State:
     '''
@@ -97,6 +111,8 @@ class system_normal_waiting_state(State):
         global check_exception_logging_flag;
         global io_input;
         global io_output;
+        global state_variable;
+
         if shutdown_signal:
             return system_shutdown_state();
         elif check_emergency_stop_switch():
@@ -115,10 +131,11 @@ class system_ready_state(State):
     def on_event(self):
         print(f"The class name is:{self.__class__.__name__}")
         global shutdown_signal;
-        global client_connection_flag;
+        global socket_connection_flag;
         global check_exception_logging_flag;
         global io_input;
         global io_output;
+
         if shutdown_signal:
             return system_shutdown_state();
         elif not check_exception_logging_flag:
@@ -135,10 +152,9 @@ class system_boosting_state(State):
     def on_event(self):
         print(f"The class name is:{self.__class__.__name__}")
         global shutdown_signal;
-        global client_connection_flag;
-        global check_exception_logging_flag;
         global io_input;
         global io_output;
+        global state_variable;
         if shutdown_signal:
             return system_shutdown_state();
         elif not check_exception_logging_flag:
@@ -157,7 +173,7 @@ class system_operation_state(State):
     def on_event(self):
         print(f"The class name is:{self.__class__.__name__}")
         global shutdown_signal;
-        global client_connection_flag;
+        global socket_connection_flag;
         global check_exception_logging_flag;
         global io_input;
         global io_output;
@@ -176,7 +192,7 @@ class system_exception_state(State):
     def on_event(self):
         print(f"The class name is:{self.__class__.__name__}")
         global shutdown_signal;
-        global client_connection_flag;
+        global socket_connection_flag;
         global check_exception_logging_flag;
         global io_input;
         global io_output;
@@ -209,7 +225,7 @@ class system_shutdown_state(State):
     def on_event(self):
         print(f"The class name is:{self.__class__.__name__}")
         global shutdown_signal;
-        global client_connection_flag;
+        global _connection_flag;
         global check_exception_logging_flag;
         global io_input;
         global io_output;
