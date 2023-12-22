@@ -34,7 +34,7 @@ state_variable = {
 RS485_devices_reading = {
     "io_input" : [],
     "io_output" : [],
-    "current" : -1
+    "current" : None
 };
 
 ui_commands = {

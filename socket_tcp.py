@@ -31,7 +31,7 @@ class tcp_server():
         :return:
         '''
         data = self.client_socket.recv(1024);
-        json_str = data.decode("utf-8");
+        json_str = data.decode('utf-8');
         received_dict = json.loads(json_str);
         return received_dict
 
@@ -41,7 +41,7 @@ class tcp_server():
         :param data: dictionary to be send
         :return:
         '''
-        json_data = json.dumps(data).encode();
+        json_data = json.dumps(data).encode('utf-8');
         self.client_socket.sendall(json_data);
 
     def disconnect(self):

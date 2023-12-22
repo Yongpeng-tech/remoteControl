@@ -30,7 +30,7 @@ class fengkong_current_detector(RS485):
         :param timeout:float, default 0.01 and too small cause problem
         :param unit: uint16,the slave id for the device, the default value is 1
         '''
-        super().__init__()
+        super().__init__(seria_client,unit)
         self.baud_rate_dict = {3:1200,4:2400,5:4800,6:9600,7:19200}
         self.unit = unit;
         self.client = seria_client;
@@ -72,7 +72,7 @@ class fengkong_current_detector(RS485):
         '''
         result = self.client.read_holding_registers(address=0x0056, count=1, slave=self.unit);
         if isinstance(result, ModbusException):
-            print("Fail to read current",result)
+            print("Fail to read current")
             return None;
         else:
             return result.registers[0]*(20-0)/10000-0;

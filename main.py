@@ -18,12 +18,6 @@ from socket_tcp import *
 from commands_parse import execute_command
 from share_variables import *
 
-global shutdown_signal     #undefined
-global start_signal        #undefined
-
-
-
-
 # def main_controller_handler(alarm_controller: ModbusAlarm, io_controller: zhongsheng_io_relay_controller,
 #                             current_controller: fengkong_current_detector):
 #     global io_input
@@ -52,7 +46,7 @@ global start_signal        #undefined
 
 
 def io_controller_handler(io_controller: zhongsheng_io_relay_controller
-                          ,current_detector:fengkong_current_detector,time,lock):
+                          ,current_detector:fengkong_current_detector,timeout,lock):
     '''
     Threading function to read io input and output as well as current.
     This function run a specific amount of time periodically
@@ -60,33 +54,39 @@ def io_controller_handler(io_controller: zhongsheng_io_relay_controller
     :param current_detector: fengkong_current_detector object
     :return:
     '''
+
     print("io_controller_handler start");
     global RS485_devices_reading;
+
     while True:
-        with lock:
-            result = io_controller.read_input_conditions(address=0, count=8);
-            if result and len(result) == 8:
-                RS485_devices_reading["io_input"] = result;
-
-            result = io_controller.read_outputs(address=0,count = 8);
-            if result and len(result) == 8:
-                RS485_devices_reading["io_ouput"] = result;
-
-            result = current_detector.read_current();
-            if result:
-                RS485_devices_reading["current"] = result;
-
-        time.sleep(time);
+        with ((((lock)))):
+            result = execute_command("read",io_controller,current_detector);
+            RS485_devices_reading["io_input"] = result[1];
+            RS485_devices_reading["io_output"] = result[2];
+            RS485_devices_reading["current"] = result[0];
+        time.sleep(timeout);
 
 
-def tcp_handler(server:tcp_server,time,lock):
+def tcp_handler(server:tcp_server,timeout,lock):
     global tcp_data;
+    global RS485_devices_reading;
+    global ui_controller;
     while True:
         with lock:
             tcp_data = server.read_from_client();
-            for key,value in enumerate(tcp_data):
-                print(f"{key}:{value}")
-        time.sleep(time);
+            if(tcp_data != None):
+                # for key in tcp_data:
+                #     print(key,":",tcp_data[key])
+                cur = datetime.now();
+                date = cur.strftime("%Y-%m-%d %H:%M:%S");
+                data = {"date":date}
+                server.sent_to_client(data);
+                if tcp_data["command"] == 1:
+                    ui_commands["start_signal"] = True;
+                elif tcp_data["command"] ==0:
+                    ui_commands["stop_signal"] = True;
+                # print(RS485_devices_reading)
+        time.sleep(timeout);
 
 
 if __name__ == '__main__':
@@ -117,13 +117,13 @@ if __name__ == '__main__':
 
     '''
     check device connection, check 10 times to do connection with all devices
-    The total amount of time to be taken is 1 sec
     '''
     times = 0;
     while times<10:
-        state_variable["alarm_connection_flag"] = modbusalarm.check_connection(addr=0);
+        #state_variable["alarm_connection_flag"] = modbusalarm.check_connection(addr = 1);
         state_variable["io_connection_flag"] = io_relay.check_connection(addr=0);
-        state_variable["current_connection_flag"] = current_detector.check_connection(addr=0);
+        time.sleep(0.1);
+        state_variable["current_connection_flag"] = True if current_detector.read_current() else False;
         if (not state_variable["alarm_connection_flag"] or not state_variable["io_connection_flag"]
                 or not state_variable["current_connection_flag"]):
             devices_connection_flag = False;
@@ -149,21 +149,22 @@ if __name__ == '__main__':
     threads = []
     lock = threading.Lock(); #lock for shared data structure between socket and threading
 
-    # thread = threading.Thread(target=io_controller_handler, args=(modbusalarm, io_relay, current_detector,0.3,lock));
-    # thread.start();
-    # threads.append(thread)
-
-    thread = threading.Thread(target=tcp_handler, args=(socket_server,0.3,lock));
+    thread = threading.Thread(target=io_controller_handler, args=(io_relay, current_detector,0.1,lock));
     thread.start();
     threads.append(thread)
 
+    thread = threading.Thread(target=tcp_handler, args=(socket_server,0.1,lock));
+    thread.start();
+    threads.append(thread)
+
+
+
+    exception_handler_system = StateMachine(system_start_state(),lock,
+                                            modbusalarm,io_relay,current_detector,
+                                           1);
+    exception_handler_system.run();
     for thread in threads:
         thread.join();
 
-
-    # state_machine = StateMachine();
-    # thread = threading.Thread(target=state_machine.run);
-    # threads.append(thread);
-    # thread.start();
 
 # See PyCharm help at https://www.jetbrains.com/help/pycharm/
