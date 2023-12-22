@@ -131,7 +131,8 @@ if __name__ == '__main__':
         else:
             devices_connection_flag = True;
             break;
-
+        time.sleep(0.1);
+    print(state_variable["alarm_connection_flag"] ,  state_variable["io_connection_flag"],state_variable["current_connection_flag"] )
     '''
     wait client make tcp connection in specific amount of time 
     '''
