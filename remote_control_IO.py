@@ -235,30 +235,31 @@ class zhongsheng_io_relay_controller(RS485):
         else:
             return result.bits[0];
 
-    def read_output_conditions(self,address = 0,count = 1):
-        '''
-
-        :param address:
-        :return:
-        '''
-        result = self.client.read_discrete_inputs(address = address,count=count,slave = self.unit);
-        if isinstance(result, ModbusException):
-            print("Failure to read output conditions", result);
-            return None;
-
-        else:
-            return result.bits[0];
+    # def read_output_conditions(self,address = 0,count = 1):
+    #     '''
+    #     read output relays' conditions
+    #     :param address: the
+    #     :return:
+    #     '''
+    #     result = self.client.read_discrete_inputs(address = address,count=count,slave = self.unit);
+    #     if isinstance(result, ModbusException):
+    #         print("Failure to read output conditions", result);
+    #         return None;
+    #
+    #     else:
+    #         return result.bits[0];
 
     def read_outputs(self, address = 0,count = 1):
         '''
-        read the single output relay coil
+        read the output relay coils
         :param address:  uint16, register's address to be read
-        :return: bool, the state of coil
+        :return: None or list, when there is a response on device,a list of relays' condition is return
+                otherwise, None is return
         '''
         result = self.client.read_coils(address=address, count= count, slave=self.unit);
         if isinstance(result, ModbusException):
-            return None;
             print("Failure to read IO outputs ", result)
+            return None;
         else:
             return result.bits;
 

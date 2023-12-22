@@ -3,6 +3,7 @@ import binascii
 
 # Press Shift+F10 to execute it or replace it with your code.
 # Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
+
 from remote_control_alarm import ModbusAlarm
 from remote_control_IO import zhongsheng_io_relay_controller
 from remote_detect_current import fengkong_current_detector
@@ -15,6 +16,7 @@ from datetime import datetime
 from pymodbus.client import ModbusSerialClient
 from socket_tcp import *
 from commands_parse import execute_command
+from share_variables import *
 
 global shutdown_signal     #undefined
 global start_signal        #undefined
@@ -49,20 +51,42 @@ global start_signal        #undefined
 #         time.sleep(0.5);
 
 
-def io_controller_handler(io_controller: zhongsheng_io_relay_controller):
+def io_controller_handler(io_controller: zhongsheng_io_relay_controller
+                          ,current_detector:fengkong_current_detector,time,lock):
+    '''
+    Threading function to read io input and output as well as current.
+    This function run a specific amount of time periodically
+    :param io_controller: zhongsheng_io_relay_controller object
+    :param current_detector: fengkong_current_detector object
+    :return:
+    '''
     print("io_controller_handler start");
+    global RS485_devices_reading;
     while True:
-        result = io_controller.read_input_conditions(address=0, count=1);
-        print(result);
-        io_controller.switch_single_ouput(address=0, value=result[0]);
-        time.sleep(0.5);
+        with lock:
+            result = io_controller.read_input_conditions(address=0, count=8);
+            if result and len(result) == 8:
+                RS485_devices_reading["io_input"] = result;
+
+            result = io_controller.read_outputs(address=0,count = 8);
+            if result and len(result) == 8:
+                RS485_devices_reading["io_ouput"] = result;
+
+            result = current_detector.read_current();
+            if result:
+                RS485_devices_reading["current"] = result;
+
+        time.sleep(time);
 
 
-def tcp_handler(server:tcp_server):
+def tcp_handler(server:tcp_server,time,lock):
     global tcp_data;
     while True:
-        tcp_data = server.read_from_client();
-        time.sleep(0.5);
+        with lock:
+            tcp_data = server.read_from_client();
+            for key,value in enumerate(tcp_data):
+                print(f"{key}:{value}")
+        time.sleep(time);
 
 
 if __name__ == '__main__':
@@ -89,6 +113,7 @@ if __name__ == '__main__':
     modbusalarm = ModbusAlarm(serial_client,unit = 1)
     io_relay = zhongsheng_io_relay_controller(serial_client, unit=2, small_port = False)
     current_detector = fengkong_current_detector(serial_client, unit=3)
+
 
     '''
     check device connection, check 10 times to do connection with all devices
@@ -121,19 +146,23 @@ if __name__ == '__main__':
 
 
     threads = []
-    # thread = threading.Thread(target=main_controller_handler, args=(modbusalarm, io_relay, current_detector));
+    lock = threading.Lock(); #lock for shared data structure between socket and threading
+
+    # thread = threading.Thread(target=io_controller_handler, args=(modbusalarm, io_relay, current_detector,0.3,lock));
     # thread.start();
     # threads.append(thread)
 
-    # lock = threading.Lock(); #lock for shared data structure between socket and threading
-    # initial_state = normal_waiting_state();
-    # state_machine = StateMachine(initial_state,lock);
-    # thread = threading.Thread(target=state_machine.run);
-    # threads.append(thread);
-    # thread.start();
+    thread = threading.Thread(target=tcp_handler, args=(socket_server,0.3,lock));
+    thread.start();
+    threads.append(thread)
 
     for thread in threads:
         thread.join();
 
+
+    # state_machine = StateMachine();
+    # thread = threading.Thread(target=state_machine.run);
+    # threads.append(thread);
+    # thread.start();
 
 # See PyCharm help at https://www.jetbrains.com/help/pycharm/

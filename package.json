@@ -19,4 +19,13 @@
   "port": 8888,
   "connection_time_out": 60,
   "waiting_time_out": 0.1,
+
+  "io_conveyor_port_num": 0,
+  "io_robot_port_num": 1,
+  "io_waste_feed_port_num": 2,
+  "io_emergency_stop_port_num": 7,
+
+  "temperature_threshold": 60,
+  "current_threshold": 1
+
 }

@@ -1,7 +1,7 @@
 import logging
 import re
 import json
-
+from datetime import datetime
 '''
 reg way to extract information
 '''
@@ -102,8 +102,11 @@ class LoggingSystem():
         self.logger = logging.getLogger(logger_name);
         self.filename = filename;
 
-    def log_json_information(self,date:str,time:str,
-                             error_code:int,debug_condition:bool,mark_condition:bool):
+    def log_json_information(self,error_code:int,debug_condition:bool,mark_condition:bool):
+        cur = datetime.now();
+        date = cur.strptime('%Y:%m:%d');
+        time = cur.strptime('%H:%M:%S');
+
         my_json_format = {
             "date":date,
             "time":time,
