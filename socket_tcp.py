@@ -53,10 +53,8 @@ class tcp_client():
         self.client_socket= socket.socket(socket.AF_INET, socket.SOCK_STREAM);
         self.server_address = (host,port);
         self.client_socket.settimeout(time_out);
-        self.client_socket.connect(self.server_address);
-        print("Connect to server address " + str(self.server_address));
 
-    def connect_client(self,waiting_time_out = 0.1):
+    def connect_client(self,waiting_time_out = 1):
         try:
             self.client_socket.connect(self.server_address);
             self.client_socket.settimeout(waiting_time_out);
@@ -83,7 +81,7 @@ class tcp_client():
         :param data:
         :return:
         '''
-        json_data = json.dumps(data).encode();
+        json_data = json.dumps(data).encode('utf-8');
         self.client_socket.sendall(json_data);
 
     def disconnect(self):
