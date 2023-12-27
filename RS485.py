@@ -7,7 +7,7 @@ class RS485(object):
     def check_connection(self, addr):
         '''
         Reading a holding register from device and check if the connection is fine or not
-        :param addr:  holding register address
+        :param addr:  holding_register address
         :return:
         '''
 

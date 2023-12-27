@@ -158,6 +158,13 @@ import numpy as np
 from RS485 import *
 
 def convert_16bits_integer(np_binary_array):
+    '''
+    convert 16 length np.int into 16 bits data
+    :param np_binary_array: 16 length long np.int
+    :return: 16bits result else None for Failure
+    '''
+    if len(np_binary_array)!= 16:
+        return None;
     low_8bits = np.packbits(np_binary_array[:8]);
     high_8bits = np.packbits(np_binary_array[8:]);
     print(low_8bits)
@@ -181,12 +188,7 @@ class zhongsheng_io_relay_controller(RS485):
     def __init__(self, serial_client: ModbusSerialClient, unit=0x01, small_port=True):
         '''
 
-        :param serial_port:'string, the port to be read
-        :param baud_rate: baud_rate to be set and the choice based on manual file
-        :param parity: char,default as 'N' None
-        :param data_bits: default 8 bits represent data
-        :param stop_bits: default 1 bit for stop bit
-        :param timeout:float, default 0.01 and too small cause problem
+        :param serial_client: The pymodbus serial client object
         :param unit: uint16,the slave id for the device, the default value is 1
         :param small_port: bool, IO device has two categories: small port meaning 4 and less than 4 port in input or output;
         the big port meaning bigger than 4 port in input or output. True for small, False for big one
@@ -210,7 +212,7 @@ class zhongsheng_io_relay_controller(RS485):
         To read input relay conditions, 1 for high voltage detected ,0 for low voltage detected
         :param address: uint16, input_register's starting address to be read(starting address from 0000H~0034H
         :param count: uint8, quantities of registers be read
-        :return: uint16 array, values of the read registers
+        :return: uint16 array, values of the read registers, None for failure to read
         '''
         result = self.client.read_input_registers(address=address, count=count, slave=self.unit);
         if isinstance(result, ModbusException):
@@ -223,15 +225,16 @@ class zhongsheng_io_relay_controller(RS485):
         """
         switch single relay output
         :param address: uint16, register's address to write start from 0000H to 002FH
-        :param value: bool, True to set close for normal open switch and
-                        False to set open for normal open switch vice or versa
+        :param value: bool, True for turn-on and False for turn-off; The close and open
+                      state depends on the wire connection.
 
-        :return(bool): return the state of written coil
+        :return(bool): The coil's or output condition, False for failure to read the coil
+                        condition
         """
         self.client.write_coil(address=address, value=value, slave=self.unit);
         result = self.client.read_coils(address=address, count=1, slave=self.unit);
         if isinstance(result, ModbusException):
-            raise result
+            raise False;
         else:
             return result.bits[0];
 
@@ -321,7 +324,7 @@ class zhongsheng_io_relay_controller(RS485):
             print("Failure to set_all_switches ",result)
             return False;
         else:
-            print("Success to set all switches");
+            print("Success to set all switches as " + str(set));
             return True;
 
     'setting holding registers'

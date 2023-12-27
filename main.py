@@ -18,31 +18,8 @@ from socket_tcp import *
 from commands_parse import execute_command
 from share_variables import *
 
-# def main_controller_handler(alarm_controller: ModbusAlarm, io_controller: zhongsheng_io_relay_controller,
-#                             current_controller: fengkong_current_detector):
-#     global io_input
-#     global io_output
-#     global current_result;
-#     global state_variable;
-#     flag = False;
-#     input_result = False;
-#     print("main_controller_handler start");
-#     while True:
-#         '''
-#         Read io input and output as well as current to monitor the system's
-#         conditions
-#         '''
-#         if state_variable["command_codes"] == "shut_down":
-#             current_result, io_input, io_output = execute_command(state_variable["command_codes"],alarm_controller
-#                                                                   ,zhongsheng_io_relay_controller,current_controller)
-#         elif state_variable["command_codes"] == "start":
-#             result = execute_command(state_variable["command_codes"],alarm_controller,zhongsheng_io_relay_controller,
-#                                      current_controller)
-#         elif state_variable["command_codes"] == "read":
-#             result = execute_command(state_variable["command_codes"], alarm_controller, zhongsheng_io_relay_controller,
-#                                      current_controller)
-#
-#         time.sleep(0.5);
+
+
 
 
 def io_controller_handler(io_controller: zhongsheng_io_relay_controller
@@ -52,6 +29,8 @@ def io_controller_handler(io_controller: zhongsheng_io_relay_controller
     This function run a specific amount of time periodically
     :param io_controller: zhongsheng_io_relay_controller object
     :param current_detector: fengkong_current_detector object
+    :param timeout: the period of time between wake and sleep for this threading
+    :param lock: lock for shared data structure between socket and threading
     :return:
     '''
 
@@ -67,31 +46,62 @@ def io_controller_handler(io_controller: zhongsheng_io_relay_controller
         time.sleep(timeout);
 
 
+
 def tcp_handler(server:tcp_server,timeout,lock):
+    '''
+    predefined structure for tcp communication:
+    four temperature's data: four float variables;
+    conveyor status: bool; robot status: bool; system commands, start
+    and stop : bool;
+    {
+        temperatures : [T11,T12,T21,T22],
+        conveyor: bool, status of conveyor
+        robot: bool, status of robot
+        start: bool, start command
+        stop: bool, stop command
+        pause: bool, pause command
+    }
+    :param server: pass the customized tcp server instance
+    :param timeout: the period of time between wake and sleep for this threading
+    :param lock: lock for shared data structure between socket and threading
+    :return:
+    '''
     global tcp_data;
     global RS485_devices_reading;
-    global ui_controller;
+    global ui_commands;
+    global tcp_read_json_information;
     while True:
         with lock:
             tcp_data = server.read_from_client();
             if(tcp_data != None):
-                # for key in tcp_data:
-                #     print(key,":",tcp_data[key])
-                cur = datetime.now();
-                date = cur.strftime("%Y-%m-%d %H:%M:%S");
-                data = {"date":date}
-                server.sent_to_client(data);
-                if tcp_data["command"] == 1:
-                    ui_commands["start_signal"] = True;
-                elif tcp_data["command"] ==0:
-                    ui_commands["stop_signal"] = True;
+                print(tcp_data);
+                tcp_read_json_information["conveyor_state"] = tcp_data["conveyor"];
+                tcp_read_json_information["robot"] =tcp_data["robot"];
+                tcp_read_json_information["temperature_sensors"] = tcp_data["temperature"];
+                ui_commands["start_signal"] = tcp_data["start"];
+                ui_commands["pause_signal"] = tcp_data["pause"];
+                ui_commands["shutdown_signal"] = tcp_data["stop"];
+
                 # print(RS485_devices_reading)
         time.sleep(timeout);
 
+def cv_status_monitor_handler(server:tcp_server,timeout,lock):
+    '''
+    check rs485 devices as well as cv system
+    :param server:
+    :param timeout:
+    :param lock:
+    :return:
+    '''
+    while True:
+        with lock:
+            temp = 1;
+        time.sleep(timeout);
 
 if __name__ == '__main__':
     global state_variable;
-
+    threads = []
+    lock = threading.Lock();  # lock for shared data structure between socket and threading
     serial_client = ModbusSerialClient(
                 method='rtu',
                 Framer=Framer.RTU,
@@ -100,13 +110,12 @@ if __name__ == '__main__':
                 parity='N',
                 bytesize=8,
                 stopbits=1,
-                timeout=0.01,
+                timeout=0.1,
                 errorcheck="crc"
             )
     connection = serial_client.connect();
     if connection:
-        port_connection_flag = True;
-
+        state_variable["port_connection_flag"] = True;
     '''
     initialize three devices
     '''
@@ -114,50 +123,36 @@ if __name__ == '__main__':
     io_relay = zhongsheng_io_relay_controller(serial_client, unit=2, small_port = False)
     current_detector = fengkong_current_detector(serial_client, unit=3)
 
-
     '''
     check device connection, check 10 times to do connection with all devices
     '''
-    times = 0;
-    while times<10:
-        #state_variable["alarm_connection_flag"] = modbusalarm.check_connection(addr = 1);
-        state_variable["io_connection_flag"] = io_relay.check_connection(addr=0);
-        time.sleep(0.1);
-        state_variable["current_connection_flag"] = True if current_detector.read_current() else False;
-        if (not state_variable["alarm_connection_flag"] or not state_variable["io_connection_flag"]
-                or not state_variable["current_connection_flag"]):
-            devices_connection_flag = False;
-            times += 1;
-        else:
-            devices_connection_flag = True;
-            break;
-        time.sleep(0.1);
+    result = execute_command("check",io_relay,current_detector,modbusalarm);
+    state_variable["alarm_connection_flag"] = result[0];
+    state_variable["io_connection_flag"] = result[1];
+    state_variable["current_connection_flag"] = result[2];
+    state_variable["devices_connection_flag"] = result[3];
+
     print(state_variable["alarm_connection_flag"] ,  state_variable["io_connection_flag"],state_variable["current_connection_flag"] )
     '''
     wait client make tcp connection in specific amount of time 
     '''
-    socket_server = tcp_server(host= configurations ["host"],port= configurations["port"],
-                               time_out=configurations["connection_time_out"]);
-    socket_connection_flag = socket_server.connect_client(waiting_time_out=configurations["waiting_time_out"]);
-
+    try:
+        socket_server = tcp_server(host= configurations ["host"],port= configurations["port"],
+                                   time_out=configurations["connection_time_out"]);
+        state_variable["socket_connection_flag"] = socket_server.connect_client(waiting_time_out=configurations["waiting_time_out"]);
+        thread = threading.Thread(target=tcp_handler, args=(socket_server, 0.1, lock));
+        thread.start();
+        threads.append(thread)
+    except Exception as e:
+        state_variable["socket_connection_flag"] = True;
 
     '''
     Ready to run exception monitor system and read io and tcp devices 
     '''
 
-
-    threads = []
-    lock = threading.Lock(); #lock for shared data structure between socket and threading
-
     thread = threading.Thread(target=io_controller_handler, args=(io_relay, current_detector,0.1,lock));
     thread.start();
     threads.append(thread)
-
-    thread = threading.Thread(target=tcp_handler, args=(socket_server,0.1,lock));
-    thread.start();
-    threads.append(thread)
-
-
 
     exception_handler_system = StateMachine(system_start_state(),lock,
                                             modbusalarm,io_relay,current_detector,
@@ -165,6 +160,4 @@ if __name__ == '__main__':
     exception_handler_system.run();
     for thread in threads:
         thread.join();
-
-
 # See PyCharm help at https://www.jetbrains.com/help/pycharm/

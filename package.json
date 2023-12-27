@@ -26,6 +26,6 @@
   "io_emergency_stop_port_num": 7,
 
   "temperature_threshold": 60,
-  "current_threshold": 1
+  "current_threshold": 0
 
 }

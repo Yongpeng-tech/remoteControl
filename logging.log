@@ -1,9 +1,17 @@
-ERROR:error_logger:{"date": "2023:12:20", "time": "18:31:40", "error_code": 1, "debug_condition": false, "mark_condition": false}
-ERROR:error_logger:{"date": "2023:12:20", "time": "18:32:43", "error_code": 1, "debug_condition": false, "mark_condition": false}
-ERROR:error_logger:{"date": "2023:12:20", "time": "18:33:35", "error_code": 1, "debug_condition": false, "mark_condition": false}
-ERROR:error_logger:{"date": "2023:12:20", "time": "18:34:26", "error_code": 1, "debug_condition": false, "mark_condition": false}
-ERROR:error_logger:{"date": "2023:12:20", "time": "18:35:33", "error_code": 1, "debug_condition": true, "mark_condition": false}
-ERROR:error_logger:{"date": "2023:12:20", "time": "18:35:52", "error_code": 1, "debug_condition": true, "mark_condition": false}
-ERROR:error_logger:{"date": "2023:12:20", "time": "18:37:43", "error_code": 1, "debug_condition": true, "mark_condition": false}
-ERROR:error_logger:{"date": "2023:12:20", "time": "18:38:49", "error_code": 1, "debug_condition": true, "mark_condition": true}
-ERROR:error_logger:{"date": "2023:12:20", "time": "18:51:52", "error_code": 1, "debug_condition": true, "mark_condition": true}
+{"date": "2023:12:27", "time": "17:42:45", "error_code": [1, 2, 5], "debug_condition": false, "mark_condition": false}
+{"date": "2023:12:27", "time": "17:42:46", "error_code": [1, 2, 5], "debug_condition": false, "mark_condition": false}
+{"date": "2023:12:27", "time": "17:42:47", "error_code": [1, 2, 5], "debug_condition": false, "mark_condition": false}
+{"date": "2023:12:27", "time": "17:42:48", "error_code": [1, 2, 5], "debug_condition": false, "mark_condition": false}
+{"date": "2023:12:27", "time": "17:42:49", "error_code": [1, 2, 5], "debug_condition": false, "mark_condition": false}
+{"date": "2023:12:27", "time": "17:42:50", "error_code": [1, 2, 5], "debug_condition": false, "mark_condition": false}
+{"date": "2023:12:27", "time": "17:42:51", "error_code": [1, 2, 5], "debug_condition": false, "mark_condition": false}
+{"date": "2023:12:27", "time": "17:42:52", "error_code": [1, 2, 5], "debug_condition": false, "mark_condition": false}
+{"date": "2023:12:27", "time": "17:42:53", "error_code": [1, 2, 5], "debug_condition": false, "mark_condition": false}
+{"date": "2023:12:27", "time": "17:42:54", "error_code": [1, 2, 5], "debug_condition": false, "mark_condition": false}
+{"date": "2023:12:27", "time": "17:42:55", "error_code": [1, 2, 5], "debug_condition": false, "mark_condition": false}
+{"date": "2023:12:27", "time": "17:42:56", "error_code": [1, 2, 5], "debug_condition": false, "mark_condition": false}
+{"date": "2023:12:27", "time": "17:42:57", "error_code": [1, 2, 5], "debug_condition": false, "mark_condition": false}
+{"date": "2023:12:27", "time": "17:42:58", "error_code": [1, 2, 5], "debug_condition": true, "mark_condition": false}
+{"date": "2023:12:27", "time": "18:24:01", "error_code": [5], "debug_condition": true, "mark_condition": false}
+{"date": "2023:12:27", "time": "18:35:09", "error_code": [5], "debug_condition": true, "mark_condition": false}
+{"date": "2023:12:27", "time": "18:35:26", "error_code": [5], "debug_condition": false, "mark_condition": false}
