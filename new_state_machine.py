@@ -205,7 +205,12 @@ class system_start_state(State):
                 start_list = [START_BIT]*8;
                 if(result == start_list):
                     self.state = start_state[self.state];
-
+        elif self.state == "state_stage_2":
+            io_input = RS485_devices_reading["io_input"];
+            if io_input != []:
+                for val in io_input:
+                    if val == STOP_BIT:
+                        return system_waiting_state();
 
 class system_shutdown_state(State):
     '''
