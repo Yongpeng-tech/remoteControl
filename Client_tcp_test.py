@@ -7,23 +7,29 @@ if __name__ == '__main__':
     global configurations;
     tcp_cl = tcp_client(configurations["host"], configurations["port"]);
     result = tcp_cl.connect_client();
-
-    data = {}
+    data = {
+        "temperature":[1,2,3,4],
+        "conveyor": False,
+        "robot": False,
+        "start":False,
+        "pause": False,
+        "stop": False,
+    };
+    commands = ["start","pause","stop"];
     if result:
         print("Connected to host")
     while result:
-        user_input = input("Enter command:Start/Stop");
+        user_input = input("Enter command:Start/Stop/pause: ");
         if(user_input == "Start"):
-            command_code = 1;
+            data["start"] = True;
         elif user_input == "Stop":
-            command_code = 0;
-        else:
-            command_code = -1;
-        cur = datetime.now();
-        date = cur.strftime("%d/%m/%Y-%H:%M:%S");
-        data = {"date":date,"command":command_code}
+            data["stop"] = True;
+        elif user_input == "Pause":
+            data["pause"] = True;
         tcp_cl.sent_to_server(data);
-        result = tcp_cl.read_from_server();
-        for key in result:
-            print(key + ": " + str(result[key]));
+        for key in commands:
+            data[key] = False;
+        # result = tcp_cl.read_from_server();
+        # for key in result:
+        #     print(key + ": " + str(result[key]));
         time.sleep(0.1);
