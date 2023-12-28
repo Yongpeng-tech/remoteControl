@@ -2,8 +2,18 @@
 import socket
 import json
 
+
+'''
+tcp server which can communicate with client in json format
+'''
 class tcp_server():
     def __init__(self, host, port,time_out = 60):
+        '''
+
+        :param host: the local host as server ip
+        :param port: which port will be assigned for tcp communication
+        :param time_out: how long will the connection be blocked and waited for client
+        '''
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM);
         self.server_address = (host,port);
         self.server_socket.bind(self.server_address);
@@ -12,13 +22,18 @@ class tcp_server():
         self.server_socket.listen(5);
         self.client_socket  = None;
         self.client_address = None;
-
+        #recv_buffer_size = self.server_socket.getsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF);
     def connect_client(self,waiting_time_out):
+        '''
+        connect to the client
+        :param waiting_time_out: new waiting timeout after connection
+        :return: bool, True for success, False for Failure
+        '''
         try:
             client_socket, address = self.server_socket.accept();
             self.client_socket = client_socket;
             self.client_address = address;
-            self.server_socket.settimeout(waiting_time_out);
+            self.client_socket.settimeout(waiting_time_out);
             print("Connected to client address " + str(self.client_address));
             return True;
         except Exception as e:
@@ -28,17 +43,21 @@ class tcp_server():
     def read_from_client(self):
         '''
         read predefined json format from client
-        :return:
+        :return: None for failure, dictionary for success
         '''
-        data = self.client_socket.recv(1024);
-        json_str = data.decode('utf-8');
-        received_dict = json.loads(json_str);
-        return received_dict
+        try:
+            data = self.client_socket.recv(1024);
+            json_str = data.decode('utf-8');
+            received_dict = json.loads(json_str);
+            return received_dict
+        except Exception as e:
+            return None
+
 
     def sent_to_client(self,data):
         '''
         send dictionary via json format
-        :param data: dictionary to be send
+        :param data: dictionary to be sent
         :return:
         '''
         json_data = json.dumps(data).encode('utf-8');
@@ -47,10 +66,19 @@ class tcp_server():
     def disconnect(self):
         self.client_socket.close();
 
+'''
+tcp client which can communicate with server in json format
+'''
 
 class tcp_client():
     def __init__(self, host, port,time_out = 60):
-        self.client_socket= socket.socket(socket.AF_INET, socket.SOCK_STREAM);
+        '''
+
+        :param host: the local host as server ip
+        :param port: which port will be assigned for tcp communication
+        :param time_out: how long will the connection be blocked and waited for server
+        '''
+        self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM);
         self.server_address = (host,port);
         self.client_socket.settimeout(time_out);
 
@@ -66,19 +94,20 @@ class tcp_client():
 
     def read_from_server(self):
         '''
-
-        :return:
+        :return: None for failure, dictionary for success
         '''
-        received_dict = {};
-        data = self.client_socket.recv(1024);
-        json_str = data.decode("utf-8");
-        received_dict = json.loads(json_str);
-        return received_dict;
+        try:
+            data = self.client_socket.recv(1024);
+            json_str = data.decode('utf-8');
+            received_dict = json.loads(json_str);
+            return received_dict
+        except Exception as e:
+            return None
 
     def sent_to_server(self,data):
         '''
 
-        :param data:
+        :param data: dictionary date to be sent
         :return:
         '''
         json_data = json.dumps(data).encode('utf-8');
